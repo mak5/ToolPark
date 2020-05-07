@@ -1,12 +1,19 @@
+using ToolPark.Filters;
+using AutoMapper;
+using DAL;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SpaServices;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using VueCliMiddleware;
+using BLL.ToolServices;
+using DAL.Repositories;
 
-namespace AspNetCoreVueStarter
+namespace ToolPark
 {
     public class Startup
     {
@@ -20,16 +27,25 @@ namespace AspNetCoreVueStarter
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllersWithViews();
+            services.AddDbContext<ToolsContext>(options =>
+            options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
-            // Add AddRazorPages if the app uses Razor Pages.
-            services.AddRazorPages();
+            services.AddScoped<IToolService, ToolService>();
+            services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
+
+            services.AddMvc(opt =>
+            {
+                opt.Filters.Add(typeof(ValidatorActionFilter));
+            }).AddFluentValidation(fvc => fvc.RegisterValidatorsFromAssemblyContaining<Startup>());
+
+            services.AddAutoMapper(typeof(Startup));
 
             // In production, the Vue files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
             {
                 configuration.RootPath = "ClientApp/dist";
             });
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -66,9 +82,6 @@ namespace AspNetCoreVueStarter
                         npmScript: "serve",
                         regex: "Compiled successfully");
                 }
-
-                // Add MapRazorPages if the app uses Razor Pages. Since Endpoint Routing includes support for many frameworks, adding Razor Pages is now opt -in.
-                endpoints.MapRazorPages();
             });
 
             app.UseSpa(spa =>

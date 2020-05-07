@@ -1,19 +1,123 @@
-import Vue from 'vue';
-import Vuex, { StoreOptions } from 'vuex';
-import { RootState } from './types';
-import { counter } from './counter/index';
-
+import Vue from "vue";
+import Vuex from "vuex";
+import { Tool } from "@/models/Tool";
+import Axios from "axios";
+import { getField, updateField } from "vuex-map-fields";
+import i18n from "../i18n";
+import router from '../router';
 Vue.use(Vuex);
 
-// Vuex structure based on https://codeburst.io/vuex-and-typescript-3427ba78cfa8
+const date = new Date();
+date.setDate(date.getDate() + 1);
 
-const store: StoreOptions<RootState> = {
+export default new Vuex.Store({
   state: {
-    version: '1.0.0', // a simple property
+    defaultTool: {
+      serialNumber: "",
+      currentSerialNumber: "",
+      label: "",
+      imageUrl: "",
+      nextInspectionDate: date.toISOString().substr(0, 10),
+    },
+    newTool: {
+      serialNumber: "",
+      currentSerialNumber: "",
+      label: "",
+      imageUrl: "",
+      nextInspectionDate: date.toISOString().substr(0, 10),
+    },
+    currentTool: {
+      serialNumber: "",
+      currentSerialNumber: "",
+      label: "",
+      imageUrl: "",
+      nextInspectionDate: date.toISOString().substr(0, 10),
+    },
+    tools: [] as Tool[],
+    showError: false,
+    errorMessage: "",
+    version: "1.0.0",
   },
-  modules: {
-    counter,
+  getters: {
+    newTool: (state) => {
+      return state.newTool;
+    },
+    currentTool: (state) => {
+      return state.currentTool;
+    },
+    tools:(state) => {
+      return state.tools;
+    },
+    getField,
   },
-};
-
-export default new Vuex.Store<RootState>(store);
+  actions: {
+    async getTools({ commit }) {
+      await Axios.get<Tool[]>("api/Tools")
+        .then((response) => {
+          commit("SET_TOOLS", response.data);
+        })
+        .catch((error) => {
+          this.state.showError = true;
+          this.state.errorMessage = `${i18n.t("errorLoadingTools")} ${error}.`;
+        });
+    },
+    async addTool({ commit }, payload) {
+      await Axios.post("api/Tools", payload)
+        .then(() => {
+          commit("ADD_TOOL", payload);
+          router.push("/");
+        })
+        .catch((error) => {
+          this.state.showError = true;
+          this.state.errorMessage = `${i18n.t("errorAddingTools")} ${error}.`;
+        });
+    },
+    async getTool({ commit }, payload) {
+      await Axios.get<Tool>(`/api/Tools/${payload}`)
+        .then((response) => {
+          commit("SET_TOOL", response.data);
+        })
+        .catch((error) => {
+          this.state.showError = true;
+          this.state.errorMessage = `${i18n.t("errorLoadingData")} ${error}.`;
+        });
+    },
+    async editTool({ commit }, payload) {
+      await Axios.put(`/api/Tools/${payload.currentSerialNumber}`, payload)
+        .then(() => {
+          router.push("/");
+        })
+        .catch((error) => {
+          this.state.showError = true;
+          this.state.errorMessage = `${i18n.t("errorEditingTools")} ${error}.`;
+        });
+    },
+    async deleteTool({ commit }, payload) {
+      await Axios.delete(`/api/Tools/${payload}`)
+        .then(() => {
+        })
+        .catch((error) => {
+          this.state.showError = true;
+          this.state.errorMessage = `${i18n.t("errorDeletingTools")} ${error}.`;
+        });
+    },
+  },
+  mutations: {
+    ADD_TOOL(state, payload) {
+      state.tools.push(payload);
+      Object.assign(state.newTool, state.defaultTool);
+    },
+    SET_TOOLS(state, payload) {
+      state.tools = payload;
+    },
+    SET_TOOL(state, payload) {
+      state.currentTool = payload;
+      state.currentTool.nextInspectionDate = payload.nextInspectionDate.substr(
+        0,
+        10
+      );
+    },
+    updateField,
+  },
+  modules: {},
+});

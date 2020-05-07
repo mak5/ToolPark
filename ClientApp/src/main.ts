@@ -8,6 +8,7 @@ import router from './router';
 import store from '@/store/index';
 import './registerServiceWorker';
 import dateFilter from '@/filters/date.filter';
+import i18n from './i18n'
 
 Vue.config.productionTip = false;
 
@@ -17,5 +18,6 @@ new Vue({
   vuetify,
   router,
   store,
-  render: (h) => h(App),
+  i18n,
+  render: (h) => h(App)
 }).$mount('#app');

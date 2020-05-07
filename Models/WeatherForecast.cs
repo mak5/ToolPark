@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace AspNetCoreVueStarter.Models
+namespace ToolPark.Models
 {
     public class WeatherForecast
     {
